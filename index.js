@@ -5,8 +5,13 @@ const app = express()
 const PORT = 3001
 
 app.use(express.json())
+// create a new named format
 
-app.use(morgan(":method :url :status :res[content-length] - :response-time ms :res[header]"))
+morgan.token('requestParams', function (req){
+    return JSON.stringify(req.body) ;
+})
+
+app.use(morgan(":method :url :status :res[content-length] - :response-time ms :requestParams"))
 
 let persons = [
     {
