@@ -6,9 +6,13 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:ui": "rm -rf build && cd ../fullstackopen/fso-2020/part2/phonebook/ && yarn build --prod && cp -r build ../../../../fullstackopen-part3/",
+    "deploy": "git push heroku main",
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && npm run deploy",
+    "logs:prod": "heroku logs --tail"
   },
-  "author": "Matti Luukkainen",
+  "author": "Max Du",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
