@@ -9,6 +9,9 @@ app.use(cors())
 app.use(express.json())
 app.use(express.static('build'))
 
+
+
+
 let persons = [
     {
         id: 1,
@@ -36,7 +39,7 @@ const generateId =()=> {
     const maxId = persons.length > 0
         ? Math.max(...persons.map(person => person.id))
         : 0
-    return Math.floor(Math.random() * (10000 + maxId))
+    return Math.floor(Math.random() * (100 + maxId))
 }
 
 app.get('/info', (request, response) => {
@@ -59,20 +62,35 @@ app.get('/api/persons', (request, response) => {
 
 
 // get
+// app.get('/api/persons/:id', (request, response) => {
+//     const id = Number(request.params.id)
+//     const person = persons.find(person => person.id === id)
+//     person ? response.json(person) : response.status(404).end()
+//
+// })
 app.get('/api/persons/:id', (request, response) => {
     const id = Number(request.params.id)
-    const person = persons.find(person => person.id === id)
-    person ? response.json(person) : response.status(404).end()
-
+    Person
+        .findById(id)
+        .then(person => {
+        person ? response.json(person) : response.status(404).end()
+        })
+        .catch(error => {
+        console.log(error)
+        response.status(400).send({ error: 'Malformatted id' })
+        })
 })
 
 
-
 // delete
-app.delete('/api/persons/:id', (request,response) => {
+app.delete('/api/persons/:id', (request,response, next) => {
     const id = Number(request.params.id)
-    persons = persons.filter( person => person.id !== id)
-    response.status(204).end()
+    Person.findByIdAndRemove(id)
+        .then(result => {
+            response.status(204).end()
+        })
+        .catch(error => next(error))
+
 })
 
 // post
@@ -91,15 +109,29 @@ app.post('/api/persons', (request, response) => {
             error: "number is missing"
         })
     }
+    const person = new Person({
+        name: body.name,
+        number: body.number,
+    })
+    person.save().then(savedPerson => {
+            response.json(savedPerson)
+        })
+})
+
+// update
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+
     const person = {
-        id: generateId(),
         name: body.name,
         number: body.number,
     }
-    person.save()
-        .then(savedPerson => {
-            response.json(savedPerson)
+
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+        .then(updatedPerson => {
+            response.json(updatedPerson)
         })
+        .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -107,6 +139,18 @@ const unknownEndpoint = (request, response) => {
 }
 
 app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+    }
+
+    next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
