@@ -6,38 +6,12 @@ const Person = require('./models/person')
 
 const app = express()
 app.use(cors())
-app.use(express.json())
 app.use(express.static('build'))
-
-
-
-
-let persons = [
-    {
-        id: 1,
-        name: "Arto Hellas",
-        number: "040-123456"
-    },
-    {
-        id: 2,
-        name: "Ada Lovelace",
-        number: "39-44-5323523"
-    },
-    {
-        id: 3,
-        name: "Dan Abramov",
-        number: "12-43-234345"
-    },
-    {
-        id: 4,
-        name: "Mary Poppendick",
-        number: "39-23-6423122"
-    }
-]
+app.use(express.json())
 
 const generateId =()=> {
-    const maxId = persons.length > 0
-        ? Math.max(...persons.map(person => person.id))
+    const maxId = Person.length > 0
+        ? Math.max(...Person.map(person => person.id))
         : 0
     return Math.floor(Math.random() * (100 + maxId))
 }
@@ -84,7 +58,7 @@ app.get('/api/persons/:id', (request, response) => {
 
 // delete
 app.delete('/api/persons/:id', (request,response, next) => {
-    const id = Number(request.params.id)
+    const id = request.params.id
     Person.findByIdAndRemove(id)
         .then(result => {
             response.status(204).end()
@@ -94,28 +68,21 @@ app.delete('/api/persons/:id', (request,response, next) => {
 })
 
 // post
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
-    if (!body.name) {
-        return response.status(400).json({
-            error: 'name is missing'
-        })
-    } else if(persons.find(person => person.name === body.name)){
-        return response.status(400).json({
-            error: 'name must be unique'
-        })
-    } else if (!body.number) {
-        return response.status(400).json({
-            error: "number is missing"
-        })
-    }
+
     const person = new Person({
         name: body.name,
         number: body.number,
     })
-    person.save().then(savedPerson => {
-            response.json(savedPerson)
+
+    person.save()
+        .then(savedPerson => savedPerson.toJSON())
+        .then(savedAndFormattedPerson => {
+            response.json(savedAndFormattedPerson)
         })
+        .catch( error => next(error))
+
 })
 
 // update
@@ -145,6 +112,8 @@ const errorHandler = (error, request, response, next) => {
 
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError'){
+        return response.status(400).json({error: error.message})
     }
 
     next(error)
