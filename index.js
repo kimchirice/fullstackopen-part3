@@ -53,15 +53,20 @@ app.get('/api/persons', (request, response) => {
         .find({})
         .then(persons => {
             response.json(persons)
+            console.log(persons)
         })
 })
+
 
 // get
 app.get('/api/persons/:id', (request, response) => {
     const id = Number(request.params.id)
     const person = persons.find(person => person.id === id)
     person ? response.json(person) : response.status(404).end()
+
 })
+
+
 
 // delete
 app.delete('/api/persons/:id', (request,response) => {
@@ -91,9 +96,10 @@ app.post('/api/persons', (request, response) => {
         name: body.name,
         number: body.number,
     }
-    persons = persons.concat(person)
-    console.log(person)
-    response.json(person)
+    person.save()
+        .then(savedPerson => {
+            response.json(savedPerson)
+        })
 })
 
 const unknownEndpoint = (request, response) => {
